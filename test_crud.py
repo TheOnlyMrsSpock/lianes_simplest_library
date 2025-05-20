@@ -3,7 +3,7 @@ from backend.crud import (
     call_add_new_borrower,
     add_new_loan,
     return_book,
-    list_all_books,
+    list_all_entries_from,
     list_all_loans,
 )
 from datetime import date
@@ -31,7 +31,7 @@ try:
     print("✅ Borrower added:", result)
 
     print("📚 Fetching books and borrowers...")
-    books = list_all_books()
+    books = list_all_entries_from('Book')
     loans_before = list_all_loans()
     last_book = books[-1]
     book_id = last_book.book_id

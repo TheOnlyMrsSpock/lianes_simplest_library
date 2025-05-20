@@ -4,6 +4,7 @@ import os
 # Add the parent directory (project root) to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+import plotly.express as px
 import streamlit as st
 from streamlit_searchbox import st_searchbox
 from backend.crud import *
@@ -14,7 +15,7 @@ st.title("📚 Liana's Literary Lounge")
 
 # Sidebar navigation
 menu = st.sidebar.selectbox("Navigate", [
-    "Show Books", "Add New Book", "Add New Borrower", "Lend Book", "Return Book"
+    "Show Books", "Add New Book", "Add New Borrower", "Lend Book", "Return Book", "Update Entries", "STATS"
 ])
 
 # Show books
@@ -127,3 +128,103 @@ if menu == "Return Book":
                 st.success(msg)
             else:
                 st.error(f"Return failed: {msg}")
+
+# Update entries in the database
+if menu == "Update Entries":
+    st.title("📘 Update Entries")
+
+    tab1, tab2 = st.tabs(["📘 Update Book", "🧑‍💼 Update Borrower"])
+
+    with tab1:
+        st.header("📘 Update Book")
+
+        # Fetch books
+        books = list_all_entries_from('Book')
+        book_dict = {f"{book[1]} (ID {book[0]})": book[0] for book in books}
+
+        selected_book = st.selectbox("Select a book to update", list(book_dict.keys()))
+        selected_book_id = book_dict[selected_book]
+
+        book_data = get_book_details(selected_book_id)
+
+        if selected_book:
+            book_id = selected_book_id
+            new_title = st.text_input("Title", value=book_data.title)
+            new_language = st.text_input("Language", value=book_data.language)
+            new_author = st.text_input("Author", value=book_data.author)
+            new_genre = st.text_input("Genre", value=book_data.genre)
+
+            if st.button("✅ Update Book"):
+
+                success, msg = update_book(book_id, new_title, new_language, new_author, new_genre)
+                if success:
+                    st.success(msg)
+                else:
+                    st.error(f"Failed to update book: {msg}")
+
+    with tab2:
+        st.header("🧑‍💼 Update Borrower")
+
+        # Fetch borrowers
+        borrowers = list_all_entries_from('Borrower')
+        borrower_dict = {f"{borrower[1]} {borrower[2]} (ID {borrower[0]})": borrower[0] for borrower in borrowers}
+
+        selected_borrower = st.selectbox("Select a borrower to update", list(borrower_dict.keys()))
+        selected_borrower_id = borrower_dict[selected_borrower]
+
+        borrower_data = get_borrower_details(selected_borrower_id)
+
+        if selected_borrower:
+            borrower_id = borrower_dict[selected_borrower]
+            new_fname = st.text_input("First Name", value=borrower_data.fname)
+            new_lname = st.text_input("Last Name",value=borrower_data.lname)
+            new_phone = st.text_input("Phone Number", value=borrower_data.phone_number)
+            new_email = st.text_input("Email Address",value=borrower_data.email_address)
+
+            if st.button("✅ Update Borrower"):
+
+                success, msg = update_borrower(borrower_id, new_fname, new_lname, new_phone, new_email)
+                if success:
+                    st.success(msg)
+                else:
+                    st.error(f"Failed to update borrower: {msg}")
+
+# Stats
+if menu == "STATS":
+    st.header("📊 Library Statistics")
+
+    # Display general statistics
+    stats = get_library_stats()
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.metric(label="👥 Total Borrowers", value=stats["total_borrowers"])
+        st.metric(label="📚 Total Books", value=stats["total_books"])
+
+    with col2:
+        st.metric(label="🟢 Active Borrowers", value=stats["active_borrowers"])
+        st.metric(label="📕 Books on Loan", value=stats["borrowed_books"])
+
+    # Display pie chart for book status
+    stats = get_book_loan_stats()
+    fig = px.pie(
+        names=list(stats.keys()),
+        values=list(stats.values()),
+        title="Library Book Status",
+        color_discrete_sequence=px.colors.qualitative.Pastel
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Display top borrowers
+    top_borrowers_df = get_top_borrowers()
+
+    st.subheader("🏆 Top 10 Borrowers by Number of Borrowed Books")
+    if top_borrowers_df.empty:
+        st.info("No active loans found.")
+    else:
+        fig1 = px.bar(top_borrowers_df, x="borrower", y="books_on_loan", color="books_on_loan",
+                    labels={"books_on_loan": "Books on Loan"}, title="Top Borrowers",
+                    color_continuous_scale='Blues')
+        
+    st.plotly_chart(fig1)
