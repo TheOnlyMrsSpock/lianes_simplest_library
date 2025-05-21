@@ -226,5 +226,4 @@ if menu == "STATS":
         fig1 = px.bar(top_borrowers_df, x="borrower", y="books_on_loan", color="books_on_loan",
                     labels={"books_on_loan": "Books on Loan"}, title="Top Borrowers",
                     color_continuous_scale='Blues')
-        
-    st.plotly_chart(fig1)
+        st.plotly_chart(fig1)
